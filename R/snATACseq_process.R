@@ -88,4 +88,281 @@ peak_96 <- read.table(
   col.names = c("chr", "start", "end")
 )
 
+# Convert to genomic ranges
+gr.100 <- makeGRangesFromDataFrame(peak_100)
+gr.101 <- makeGRangesFromDataFrame(peak_101)
+gr.17 <- makeGRangesFromDataFrame(peak_17)
+gr.19 <- makeGRangesFromDataFrame(peak_19)
+gr.22 <- makeGRangesFromDataFrame(peak_22)
+gr.27 <- makeGRangesFromDataFrame(peak_27)
+gr.33 <- makeGRangesFromDataFrame(peak_33)
+gr.37 <- makeGRangesFromDataFrame(peak_37)
+gr.40 <- makeGRangesFromDataFrame(peak_40)
+gr.43 <- makeGRangesFromDataFrame(peak_43)
+gr.45 <- makeGRangesFromDataFrame(peak_45)
+gr.46 <- makeGRangesFromDataFrame(peak_46)
+gr.47 <- makeGRangesFromDataFrame(peak_47)
+gr.50 <- makeGRangesFromDataFrame(peak_50)
+gr.52 <- makeGRangesFromDataFrame(peak_52)
+gr.58 <- makeGRangesFromDataFrame(peak_58)
+gr.66 <- makeGRangesFromDataFrame(peak_66)
+gr.82 <- makeGRangesFromDataFrame(peak_82)
+gr.90 <- makeGRangesFromDataFrame(peak_90)
+gr.96 <- makeGRangesFromDataFrame(peak_96)
+
+# Create a unified set of peaks to quantify in each dataset
+combined.peaks <- reduce(x = c(gr.100, gr.101, gr.17, gr.19, gr.22, gr.27, gr.33, gr.37,
+                               gr.40, gr.43, gr.45, gr.46, gr.47, gr.50, gr.52, gr.52,
+                               gr.58, gr.66, gr.82, gr.90, gr.96))
+
+# Filter out bad peaks based on length
+peakwidths <- width(combined.peaks)
+combined.peaks <- combined.peaks[peakwidths  < 10000 & peakwidths > 20]
+combined.peaks
+
+# Load metadata
+md.100 <- read.table(
+  file = "barcodes_atacseq_AD/sample-100-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.101 <- read.table(
+  file = "barcodes_atacseq_AD/sample-101-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.17 <- read.table(
+  file = "barcodes_atacseq_AD/sample-17-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.19 <- read.table(
+  file = "barcodes_atacseq_AD/sample-19-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.22 <- read.table(
+  file = "barcodes_atacseq_AD/sample-22-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.27 <- read.table(
+  file = "barcodes_atacseq_AD/sample-27-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.33 <- read.table(
+  file = "barcodes_atacseq_AD/sample-33-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.37 <- read.table(
+  file = "barcodes_atacseq_AD/sample-37-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.40 <- read.table(
+  file = "barcodes_atacseq_AD/sample-40-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.43 <- read.table(
+  file = "barcodes_atacseq_AD/sample-43-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.45 <- read.table(
+  file = "barcodes_atacseq_AD/sample-45-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.46 <- read.table(
+  file = "barcodes_atacseq_AD/sample-46-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.47 <- read.table(
+  file = "barcodes_atacseq_AD/sample-47-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.50 <- read.table(
+  file = "barcodes_atacseq_AD/sample-50-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.52 <- read.table(
+  file = "barcodes_atacseq_AD/sample-52-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.58 <- read.table(
+  file = "barcodes_atacseq_AD/sample-58-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.66 <- read.table(
+  file = "barcodes_atacseq_AD/sample-66-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.82 <- read.table(
+  file = "barcodes_atacseq_AD/sample-82-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.90 <- read.table(
+  file = "barcodes_atacseq_AD/sample-90-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+md.96 <- read.table(
+  file = "barcodes_atacseq_AD/sample-96-singlecell.csv",
+  stringsAsFactors = FALSE,
+  sep = ",",
+  header = TRUE,
+  row.names = 1
+)
+
+# Perform an initial filtering of low count cells
+md.100 <- md.100[md.100$passed_filters > 500, ]
+md.101 <- md.101[md.101$passed_filters > 500, ]
+md.17 <- md.17[md.17$passed_filters > 500, ]
+md.19 <- md.19[md.19$passed_filters > 500, ]
+md.22 <- md.22[md.22$passed_filters > 500, ]
+md.27 <- md.27[md.27$passed_filters > 500, ]
+md.33 <- md.33[md.33$passed_filters > 500, ]
+md.37 <- md.37[md.37$passed_filters > 500, ]
+md.40 <- md.40[md.40$passed_filters > 500, ]
+md.43 <- md.43[md.43$passed_filters > 500, ]
+md.45 <- md.45[md.45$passed_filters > 500, ]
+md.46 <- md.46[md.46$passed_filters > 500, ]
+md.47 <- md.47[md.47$passed_filters > 500, ]
+md.50 <- md.50[md.50$passed_filters > 500, ]
+md.52 <- md.52[md.52$passed_filters > 500, ]
+md.58 <- md.58[md.58$passed_filters > 500, ]
+md.66 <- md.66[md.66$passed_filters > 500, ]
+md.82 <- md.82[md.82$passed_filters > 500, ]
+md.90 <- md.90[md.90$passed_filters > 500, ]
+md.96 <- md.96[md.96$passed_filters > 500, ]
+
+# Create a fragment object
+frags.100 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-100-fragments.tsv.gz",
+  cells = rownames(md.100)
+)
+frags.101 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-101-fragments.tsv.gz",
+  cells = rownames(md.101)
+)
+frags.17 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-17-fragments.tsv.gz",
+  cells = rownames(md.17)
+)
+frags.19 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-19-fragments.tsv.gz",
+  cells = rownames(md.19)
+)
+frags.22 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-22-fragments.tsv.gz",
+  cells = rownames(md.22)
+)
+frags.27 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-27-fragments.tsv.gz",
+  cells = rownames(md.27)
+)
+frags.33 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-33-fragments.tsv.gz",
+  cells = rownames(md.33)
+)
+frags.37 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-37-fragments.tsv.gz",
+  cells = rownames(md.37)
+)
+frags.40 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-40-fragments.tsv.gz",
+  cells = rownames(md.40)
+)
+frags.43 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-43-fragments.tsv.gz",
+  cells = rownames(md.43)
+)
+frags.45 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-45-fragments.tsv.gz",
+  cells = rownames(md.45)
+)
+frags.46 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-46-fragments.tsv.gz",
+  cells = rownames(md.46)
+)
+frags.47 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-47-fragments.tsv.gz",
+  cells = rownames(md.47)
+)
+frags.50 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-50-fragments.tsv.gz",
+  cells = rownames(md.50)
+)
+frags.52 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-52-fragments.tsv.gz",
+  cells = rownames(md.52)
+)
+frags.58 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-58-fragments.tsv.gz",
+  cells = rownames(md.58)
+)
+frags.66 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-66-fragments.tsv.gz",
+  cells = rownames(md.66)
+)
+frags.82 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-82-fragments.tsv.gz",
+  cells = rownames(md.82)
+)
+frags.90 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-90-fragments.tsv.gz",
+  cells = rownames(md.90)
+)
+frags.96 <- CreateFragmentObject(
+  path = "../../samples_atacseq/sample-96-fragments.tsv.gz",
+  cells = rownames(md.96)
+)
 
