@@ -662,21 +662,21 @@ combined$blacklist_ratio <- combined$blacklist_region_fragments / combined$peak_
 # note: download chromosome sizes file from UCSC https://hgdownload-test.gi.ucsc.edu/goldenPath/hg38/bigZips/
 chrom.sizes <- read.csv('../Datos_scRNA/morabito_data/snATAC/hg38.chrom.sizes.txt', sep='\t', header=F)
 colnames(chrom.sizes) <- c('chr', 'size')
-NucSeq.atac$nucleosome_signal <- NA
-NucSeq.atac$nucleosome_group <- NA
-samples <- unique(NucSeq.atac$Sample.ID)
+combined$nucleosome_signal <- NA
+combined$nucleosome_group <- NA
+samples <- unique(combined$sampleID)
 for(i in 1:length(samples)){
   print(samples[i])
   temp <- NucleosomeSignal(
-    subset(NucSeq.atac, Sample.ID == samples[i]),
+    subset(combined, sampleID == samples[i]),
     region=paste0(chrom.sizes[1,][[1]],"-1-",chrom.sizes[1,][[2]])
   )
   temp$nucleosome_group <- ifelse(temp$nucleosome_signal > 10, 'NS > 10', 'NS < 10')
-  NucSeq.atac$nucleosome_signal <- ifelse(NucSeq.atac$Sample.ID == samples[i], temp$nucleosome_signal, NucSeq.atac$nucleosome_signal)
-  NucSeq.atac$nucleosome_group <- ifelse(NucSeq.atac$Sample.ID == samples[i], temp$nucleosome_group, NucSeq.atac$nucleosome_group)
+  combined$nucleosome_signal <- ifelse(combined$sampleID == samples[i], temp$nucleosome_signal, combined$nucleosome_signal)
+  combined$nucleosome_group <- ifelse(combined$sampleID == samples[i], temp$nucleosome_group, combined$nucleosome_group)
 }
-NucSeq.atac$pass_qc <- ifelse(NucSeq.atac$peak_region_fragments > 300 & NucSeq.atac$peak_region_fragments < 10000 & NucSeq.atac$pct_reads_in_peaks > 15 & NucSeq.atac$blacklist_ratio < 0.01 & NucSeq.atac$nucleosome_signal < 10, TRUE, FALSE)
-NucSeq.atac <- NucSeq.atac[,NucSeq.atac$pass_qc]
+combined$pass_qc <- ifelse(combined$peak_region_fragments > 300 & combined$peak_region_fragments < 10000 & combined$pct_reads_in_peaks > 15 & combined$blacklist_ratio < 0.01 & combined$nucleosome_signal < 10, TRUE, FALSE)
+combined <- combined[,combined$pass_qc]
 
 
 
