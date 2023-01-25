@@ -529,6 +529,155 @@ s90 <- CreateSeuratObject(s90_assay, assay = "ATAC", meta.data = md.90)
 s96_assay <- CreateChromatinAssay(s96.counts, fragments = frags.96)
 s96 <- CreateSeuratObject(s96_assay, assay = "ATAC", meta.data = md.96)
 
+# Add information to identify dataset of origin
+s100$sampleID <- "sample-100"
+s101$sampleID <- "sample-101"
+s17$sampleID <- "sample-17"
+s19$sampleID <- "sample-19"
+s22$sampleID <- "sample-22"
+s27$sampleID <- "sample-27"
+s33$sampleID <- "sample-33"
+s37$sampleID <- "sample-37"
+s40$sampleID <- "sample-40"
+s43$sampleID <- "sample-43"
+s45$sampleID <- "sample-45"
+s46$sampleID <- "sample-46"
+s47$sampleID <- "sample-47"
+s50$sampleID <- "sample-50"
+s52$sampleID <- "sample-52"
+s58$sampleID <- "sample-58"
+s66$sampleID <- "sample-66"
+s82$sampleID <- "sample-82"
+s90$sampleID <- "sample-90"
+s96$sampleID <- "sample-96"
+
+# Add information to identify phenotype
+s100$disease <- "Control"
+s101$disease <- "Control"
+s17$disease <- "AD"
+s19$disease <- "AD"
+s22$disease <- "AD"
+s27$disease <- "AD"
+s33$disease <- "AD"
+s37$disease <- "AD"
+s40$disease <- "AD"
+s43$disease <- "AD"
+s45$disease <- "AD"
+s46$disease <- "AD"
+s47$disease <- "AD"
+s50$disease <- "AD"
+s52$disease <- "Control"
+s58$disease <- "Control"
+s66$disease <- "Control"
+s82$disease <- "Control"
+s90$disease <- "Control"
+s96$disease <- "Control"
+
+s100$tangle_stage <- "Stage_2"
+s101$tangle_stage <- "Stage_1"
+s17$tangle_stage <- "Stage_6"
+s19$tangle_stage <- "Stage_6"
+s22$tangle_stage <- "Stage_6"
+s27$tangle_stage <- "Stage_6"
+s33$tangle_stage <- "Stage_5"
+s37$tangle_stage <- "Stage_6"
+s40$tangle_stage <- "Stage_6"
+s43$tangle_stage <- "Stage_6"
+s45$tangle_stage <- "Stage_6"
+s46$tangle_stage <- "Stage_5"
+s47$tangle_stage <- "Stage_5"
+s50$tangle_stage <- "Stage_6"
+s52$tangle_stage <- "Stage_2"
+s58$tangle_stage <- "Stage_2"
+s66$tangle_stage <- "Stage_2"
+s82$tangle_stage <- "missing"
+s90$tangle_stage <- "Stage_1"
+s96$tangle_stage <- "Stage_0"
+
+s100$sex <- "M"
+s101$sex <- "F"
+s17$sex <- "F"
+s19$sex <- "F"
+s22$sex <- "M"
+s27$sex <- "M"
+s33$sex <- "M"
+s37$sex <- "F"
+s40$sex <- "M"
+s43$sex <- "F"
+s45$sex <- "F"
+s46$sex <- "M"
+s47$sex <- "M"
+s50$sex <- "F"
+s52$sex <- "M"
+s58$sex <- "M"
+s66$sex <- "F"
+s82$sex <- "M"
+s90$sex <- "F"
+s96$sex <- "M"
+
+s100$APOE <- "missing"
+s101$APOE <- "missing"
+s17$APOE <- "e33"
+s19$APOE <- "e33"
+s22$APOE <- "e34"
+s27$APOE <- "e23"
+s33$APOE <- "e33"
+s37$APOE <- "e34"
+s40$APOE <- "e34"
+s43$APOE <- "missing"
+s45$APOE <- "e34"
+s46$APOE <- "e23"
+s47$APOE <- "e33"
+s50$APOE <- "e33"
+s52$APOE <- "e33"
+s58$APOE <- "e33"
+s66$APOE <- "e33"
+s82$APOE <- "missing"
+s90$APOE <- "missing"
+s96$APOE <- "missing"
+
+# Merge all datasets, adding a cell ID to make sure cell names are unique
+combined <- merge(
+  x = s100,
+  y = list(s101, s17, s19, s22, s27, s33, s37, s40, s43, s45, s46, s47, s50,
+           s52, s58, s66, s82, s90, s96),
+  add.cell.ids = c("sample_100", "sample_101", "sample_17", "sample_19", "sample_22", "sample_27", "sample_33",
+                   "sample_37", "sample_40", "sample_43", "sample_45", "sample_46", "sample_47", "sample_50",
+                   "sample_52", "sample_58", "sample_66", "sample_82", "sample_90", "sample_96")
+)
+
+combined[["ATAC"]]
+saveRDS(combined, "mergeSamples_snATAC.rds")
+# Binarize peaks
+combined@assays$ATAC@counts@x[combined@assays$ATAC@counts@x > 0] <- 1
+
+################################################################################
+# Step 02: Quality Control
+################################################################################
+
+combined$pct_reads_in_peaks <- combined$peak_region_fragments / combined$nCount_ATAC * 100
+combined$blacklist_ratio <- combined$blacklist_region_fragments / combined$peak_region_fragments
+
+# for each sample, compute nucleosome banding
+# note: download chromosome sizes file from UCSC https://hgdownload-test.gi.ucsc.edu/goldenPath/hg38/bigZips/
+chrom.sizes <- read.csv('../Datos_scRNA/morabito_data/snATAC/hg38.chrom.sizes.txt', sep='\t', header=F)
+colnames(chrom.sizes) <- c('chr', 'size')
+NucSeq.atac$nucleosome_signal <- NA
+NucSeq.atac$nucleosome_group <- NA
+samples <- unique(NucSeq.atac$Sample.ID)
+for(i in 1:length(samples)){
+  print(samples[i])
+  temp <- NucleosomeSignal(
+    subset(NucSeq.atac, Sample.ID == samples[i]),
+    region=paste0(chrom.sizes[1,][[1]],"-1-",chrom.sizes[1,][[2]])
+  )
+  temp$nucleosome_group <- ifelse(temp$nucleosome_signal > 10, 'NS > 10', 'NS < 10')
+  NucSeq.atac$nucleosome_signal <- ifelse(NucSeq.atac$Sample.ID == samples[i], temp$nucleosome_signal, NucSeq.atac$nucleosome_signal)
+  NucSeq.atac$nucleosome_group <- ifelse(NucSeq.atac$Sample.ID == samples[i], temp$nucleosome_group, NucSeq.atac$nucleosome_group)
+}
+NucSeq.atac$pass_qc <- ifelse(NucSeq.atac$peak_region_fragments > 300 & NucSeq.atac$peak_region_fragments < 10000 & NucSeq.atac$pct_reads_in_peaks > 15 & NucSeq.atac$blacklist_ratio < 0.01 & NucSeq.atac$nucleosome_signal < 10, TRUE, FALSE)
+NucSeq.atac <- NucSeq.atac[,NucSeq.atac$pass_qc]
+
 
 
 
