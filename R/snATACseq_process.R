@@ -468,6 +468,67 @@ s96.counts <- FeatureMatrix(
   cells = rownames(md.96)
 )
 
+# Create Seurat Objects
+s100_assay <- CreateChromatinAssay(s100.counts, fragments = frags.100)
+s100 <- CreateSeuratObject(s100_assay, assay = "ATAC", meta.data = md.100)
+
+s101_assay <- CreateChromatinAssay(s101.counts, fragments = frags.101)
+s101 <- CreateSeuratObject(s101_assay, assay = "ATAC", meta.data = md.101)
+
+s17_assay <- CreateChromatinAssay(s17.counts, fragments = frags.17)
+s17 <- CreateSeuratObject(s17_assay, assay = "ATAC", meta.data = md.17)
+
+s19_assay <- CreateChromatinAssay(s19.counts, fragments = frags.19)
+s19 <- CreateSeuratObject(s19_assay, assay = "ATAC", meta.data = md.19)
+
+s22_assay <- CreateChromatinAssay(s22.counts, fragments = frags.22)
+s22 <- CreateSeuratObject(s22_assay, assay = "ATAC", meta.data = md.22)
+
+s27_assay <- CreateChromatinAssay(s27.counts, fragments = frags.27)
+s27 <- CreateSeuratObject(s27_assay, assay = "ATAC", meta.data = md.27)
+
+s33_assay <- CreateChromatinAssay(s33.counts, fragments = frags.33)
+s33 <- CreateSeuratObject(s33_assay, assay = "ATAC", meta.data = md.33)
+
+s37_assay <- CreateChromatinAssay(s37.counts, fragments = frags.37)
+s37 <- CreateSeuratObject(s37_assay, assay = "ATAC", meta.data = md.37)
+
+s40_assay <- CreateChromatinAssay(s40.counts, fragments = frags.40)
+s40 <- CreateSeuratObject(s40_assay, assay = "ATAC", meta.data = md.40)
+
+s43_assay <- CreateChromatinAssay(s43.counts, fragments = frags.43)
+s43 <- CreateSeuratObject(s43_assay, assay = "ATAC", meta.data = md.43)
+
+s45_assay <- CreateChromatinAssay(s45.counts, fragments = frags.45)
+s45 <- CreateSeuratObject(s45_assay, assay = "ATAC", meta.data = md.45)
+
+s46_assay <- CreateChromatinAssay(s46.counts, fragments = frags.46)
+s46 <- CreateSeuratObject(s46_assay, assay = "ATAC", meta.data = md.46)
+
+s47_assay <- CreateChromatinAssay(s47.counts, fragments = frags.47)
+s47 <- CreateSeuratObject(s47_assay, assay = "ATAC", meta.data = md.47)
+
+s50_assay <- CreateChromatinAssay(s50.counts, fragments = frags.50)
+s50 <- CreateSeuratObject(s50_assay, assay = "ATAC", meta.data = md.50)
+
+s52_assay <- CreateChromatinAssay(s52.counts, fragments = frags.52)
+s52 <- CreateSeuratObject(s52_assay, assay = "ATAC", meta.data = md.52)
+
+s58_assay <- CreateChromatinAssay(s58.counts, fragments = frags.58)
+s58 <- CreateSeuratObject(s58_assay, assay = "ATAC", meta.data = md.58)
+
+s66_assay <- CreateChromatinAssay(s66.counts, fragments = frags.66)
+s66 <- CreateSeuratObject(s66_assay, assay = "ATAC", meta.data = md.66)
+
+s82_assay <- CreateChromatinAssay(s82.counts, fragments = frags.82)
+s82 <- CreateSeuratObject(s82_assay, assay = "ATAC", meta.data = md.82)
+
+s90_assay <- CreateChromatinAssay(s90.counts, fragments = frags.90)
+s90 <- CreateSeuratObject(s90_assay, assay = "ATAC", meta.data = md.90)
+
+s96_assay <- CreateChromatinAssay(s96.counts, fragments = frags.96)
+s96 <- CreateSeuratObject(s96_assay, assay = "ATAC", meta.data = md.96)
+
 
 
 
