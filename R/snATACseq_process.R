@@ -3,7 +3,7 @@ library(Seurat)
 library(GenomicRanges)
 library(future)
 
-plan("multiprocess", workers = 5)
+plan("multicore", workers = 5)
 options(future.globals.maxSize = 50000 * 1024^2) # for 50 Gb RAM
 
 # Read peak of each sample of Morabito et al., 2021
@@ -365,4 +365,109 @@ frags.96 <- CreateFragmentObject(
   path = "../../samples_atacseq/sample-96-fragments.tsv.gz",
   cells = rownames(md.96)
 )
+
+# Quantify peaks in each dataset
+s100.counts <- FeatureMatrix(
+  fragments = frags.100,
+  features = combined.peaks,
+  cells = rownames(md.100)
+)
+s101.counts <- FeatureMatrix(
+  fragments = frags.101,
+  features = combined.peaks,
+  cells = rownames(md.101)
+)
+s17.counts <- FeatureMatrix(
+  fragments = frags.17,
+  features = combined.peaks,
+  cells = rownames(md.17)
+)
+s19.counts <- FeatureMatrix(
+  fragments = frags.19,
+  features = combined.peaks,
+  cells = rownames(md.19)
+)
+s22.counts <- FeatureMatrix(
+  fragments = frags.22,
+  features = combined.peaks,
+  cells = rownames(md.22)
+)
+s27.counts <- FeatureMatrix(
+  fragments = frags.27,
+  features = combined.peaks,
+  cells = rownames(md.27)
+)
+s33.counts <- FeatureMatrix(
+  fragments = frags.33,
+  features = combined.peaks,
+  cells = rownames(md.33)
+)
+s37.counts <- FeatureMatrix(
+  fragments = frags.37,
+  features = combined.peaks,
+  cells = rownames(md.37)
+)
+s40.counts <- FeatureMatrix(
+  fragments = frags.40,
+  features = combined.peaks,
+  cells = rownames(md.40)
+)
+s43.counts <- FeatureMatrix(
+  fragments = frags.43,
+  features = combined.peaks,
+  cells = rownames(md.43)
+)
+s45.counts <- FeatureMatrix(
+  fragments = frags.45,
+  features = combined.peaks,
+  cells = rownames(md.45)
+)
+s46.counts <- FeatureMatrix(
+  fragments = frags.46,
+  features = combined.peaks,
+  cells = rownames(md.46)
+)
+s47.counts <- FeatureMatrix(
+  fragments = frags.47,
+  features = combined.peaks,
+  cells = rownames(md.47)
+)
+s50.counts <- FeatureMatrix(
+  fragments = frags.50,
+  features = combined.peaks,
+  cells = rownames(md.50)
+)
+s52.counts <- FeatureMatrix(
+  fragments = frags.52,
+  features = combined.peaks,
+  cells = rownames(md.52)
+)
+s58.counts <- FeatureMatrix(
+  fragments = frags.58,
+  features = combined.peaks,
+  cells = rownames(md.58)
+)
+s66.counts <- FeatureMatrix(
+  fragments = frags.66,
+  features = combined.peaks,
+  cells = rownames(md.66)
+)
+s82.counts <- FeatureMatrix(
+  fragments = frags.82,
+  features = combined.peaks,
+  cells = rownames(md.82)
+)
+s90.counts <- FeatureMatrix(
+  fragments = frags.90,
+  features = combined.peaks,
+  cells = rownames(md.90)
+)
+s96.counts <- FeatureMatrix(
+  fragments = frags.96,
+  features = combined.peaks,
+  cells = rownames(md.96)
+)
+
+
+
 
