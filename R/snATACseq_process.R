@@ -728,22 +728,34 @@ combined <- Seurat::NormalizeData(
   scale.factor = median(combined$nCount_RNA)
 )
 
+saveRDS(combined, "mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
 
 ################################################################################
 # Step 04: Construct TF activity matrix (warning: takes a lot of time/memory!!!)
 ################################################################################
 library(TFBSTools)
+library(Signac)
 
-NucSeq.atac <- combined
-pfm <- getMatrixSet(x = JASPAR2022::JASPAR2022,opts = list(species = 9606, all_versions = FALSE))
-motif.matrix <- CreateMotifMatrix(features = StringToGRanges(rownames(NucSeq.atac),
-                                                             sep = c(":", "-")),
-                                                             pwm = pfm,
-                                                             genome = 'hg38',
-                                                             sep = c(":", "-"))
-motif <- CreateMotifObject(data = motif.matrix,pwm = pfm)
-NucSeq.atac[['peaks']] <- AddMotifObject(object = NucSeq.atac[['peaks']],motif.object = motif)
-NucSeq.atac <- RunChromVAR(object = NucSeq.atac,genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)
+NucSeq.atac <- readRDS("mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
+pfm <- getMatrixSet(x = JASPAR2022::JASPAR2022, opts = list(species = 9606, all_versions = FALSE))
+
+
+# this step if for delete seqlevels that don't know BSgenome.Hsapiens.UCSC.hg38
+NucSeq.atac <- NucSeq.atac[stringr::str_starts(rownames(NucSeq.atac), "c"),]
+
+# add motif information
+NucSeq.atac <- AddMotifs(
+  object = NucSeq.atac,
+  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38,
+  pfm = pfm
+)
+
+NucSeq.atac <- RunChromVAR(
+  object = NucSeq.atac,
+  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
+)
+
+
 
 ################################################################################
 # Step 05: integrate with snRNA-seq data
