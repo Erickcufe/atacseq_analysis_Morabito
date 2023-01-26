@@ -708,40 +708,34 @@ saveRDS(combined, "mergeSamples_snATAC_clusterUMAP_PartII_Done.rds")
 # Step 04: Construct gene activity matrix
 ################################################################################
 
-library(GenomicFeatures)
-library(EnsDb.Hsapiens.v86)
-gene.coords <- GenomicFeatures::genes(EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86, filter = ~ gene_biotype == "protein_coding")
-seqlevelsStyle(gene.coords) <- 'UCSC'
-genebody.coords <- keepStandardChromosomes(gene.coords, pruning.mode = 'coarse')
-genebodyandpromoter.coords <- Extend(x = gene.coords, upstream = 2000, downstream = 0)
-gene.activities <- FeatureMatrix(
-  fragments = fragment.path,
-  features = genebodyandpromoter.coords,
-  cells = colnames(NucSeq.atac),
-  chunk = 10
-)
-gene.key <- genebodyandpromoter.coords$gene_name
-names(gene.key) <- GRangesToString(grange = genebodyandpromoter.coords)
-rownames(gene.activities) <- gene.key[rownames(gene.activities)]
-NucSeq.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
-NucSeq.atac <- NormalizeData(
-  object = NucSeq.atac,
+# extract gene annotations from EnsDb
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
+
+# change to UCSC style since the data was mapped to hg38
+seqlevelsStyle(annotations) <- 'UCSC'
+
+# add the gene information to the object
+Annotation(combined) <- annotations
+
+gene.activities <- GeneActivity(combined)
+
+# add the gene activity matrix to the Seurat object as a new assay and normalize it
+combined[['RNA']] <- CreateAssayObject(counts = gene.activities)
+combined <- Seurat::NormalizeData(
+  object = combined,
   assay = 'RNA',
   normalization.method = 'LogNormalize',
-  scale.factor = median(NucSeq.atac$nCount_RNA)
+  scale.factor = median(combined$nCount_RNA)
 )
-DefaultAssay(NucSeq.atac) <- 'RNA'
 
 
 ################################################################################
 # Step 04: Construct TF activity matrix (warning: takes a lot of time/memory!!!)
 ################################################################################
-
-library(JASPAR2022)
 library(TFBSTools)
-library(BSgenome.Hsapiens.UCSC.hg38)
 
-pfm <- getMatrixSet(x = JASPAR2022,opts = list(species = 9606, all_versions = FALSE))
+NucSeq.atac <- combined
+pfm <- getMatrixSet(x = JASPAR2022::JASPAR2022,opts = list(species = 9606, all_versions = FALSE))
 motif.matrix <- CreateMotifMatrix(features = StringToGRanges(rownames(NucSeq.atac),
                                                              sep = c(":", "-")),
                                                              pwm = pfm,
@@ -749,7 +743,7 @@ motif.matrix <- CreateMotifMatrix(features = StringToGRanges(rownames(NucSeq.ata
                                                              sep = c(":", "-"))
 motif <- CreateMotifObject(data = motif.matrix,pwm = pfm)
 NucSeq.atac[['peaks']] <- AddMotifObject(object = NucSeq.atac[['peaks']],motif.object = motif)
-NucSeq.atac <- RunChromVAR(object = NucSeq.atac,genome = BSgenome.Hsapiens.UCSC.hg38)
+NucSeq.atac <- RunChromVAR(object = NucSeq.atac,genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)
 
 ################################################################################
 # Step 05: integrate with snRNA-seq data
