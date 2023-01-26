@@ -678,6 +678,136 @@ for(i in 1:length(samples)){
 combined$pass_qc <- ifelse(combined$peak_region_fragments > 300 & combined$peak_region_fragments < 10000 & combined$pct_reads_in_peaks > 15 & combined$blacklist_ratio < 0.01 & combined$nucleosome_signal < 10, TRUE, FALSE)
 combined <- combined[,combined$pass_qc]
 
+saveRDS(combined, "mergeSamples_snATAC_QualityPartI_Done.rds")
+################################################################################
+# Step 03: Primary Processing
+################################################################################
+
+# option 1: Process with Seurat / Signac (not used)
+combined <- RunTFIDF(combined)
+combined <- FindTopFeatures(combined, min.cutoff = 20)
+combined <- RunSVD(
+  object = combined,
+  assay = 'ATAC',
+  reduction.key = 'LSI_',
+  reduction.name = 'lsi'
+)
+combined <- RunUMAP(combined, reduction='lsi', dims=1:30)
+DimPlot(combined, group.by = 'sampleID', pt.size = 0.1)
+DimPlot(combined, group.by = 'disease', pt.size = 0.1)
+
+CoveragePlot(
+  object = combined,
+  group.by = 'sampleID',
+  region = "chr14-99700000-99760000"
+)
+
+saveRDS(combined, "mergeSamples_snATAC_clusterUMAP_PartII_Done.rds")
+
+################################################################################
+# Step 04: Construct gene activity matrix
+################################################################################
+
+library(GenomicFeatures)
+library(EnsDb.Hsapiens.v86)
+gene.coords <- GenomicFeatures::genes(EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86, filter = ~ gene_biotype == "protein_coding")
+seqlevelsStyle(gene.coords) <- 'UCSC'
+genebody.coords <- keepStandardChromosomes(gene.coords, pruning.mode = 'coarse')
+genebodyandpromoter.coords <- Extend(x = gene.coords, upstream = 2000, downstream = 0)
+gene.activities <- FeatureMatrix(
+  fragments = fragment.path,
+  features = genebodyandpromoter.coords,
+  cells = colnames(NucSeq.atac),
+  chunk = 10
+)
+gene.key <- genebodyandpromoter.coords$gene_name
+names(gene.key) <- GRangesToString(grange = genebodyandpromoter.coords)
+rownames(gene.activities) <- gene.key[rownames(gene.activities)]
+NucSeq.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
+NucSeq.atac <- NormalizeData(
+  object = NucSeq.atac,
+  assay = 'RNA',
+  normalization.method = 'LogNormalize',
+  scale.factor = median(NucSeq.atac$nCount_RNA)
+)
+DefaultAssay(NucSeq.atac) <- 'RNA'
+
+
+################################################################################
+# Step 04: Construct TF activity matrix (warning: takes a lot of time/memory!!!)
+################################################################################
+
+library(JASPAR2022)
+library(TFBSTools)
+library(BSgenome.Hsapiens.UCSC.hg38)
+
+pfm <- getMatrixSet(x = JASPAR2022,opts = list(species = 9606, all_versions = FALSE))
+motif.matrix <- CreateMotifMatrix(features = StringToGRanges(rownames(NucSeq.atac),
+                                                             sep = c(":", "-")),
+                                                             pwm = pfm,
+                                                             genome = 'hg38',
+                                                             sep = c(":", "-"))
+motif <- CreateMotifObject(data = motif.matrix,pwm = pfm)
+NucSeq.atac[['peaks']] <- AddMotifObject(object = NucSeq.atac[['peaks']],motif.object = motif)
+NucSeq.atac <- RunChromVAR(object = NucSeq.atac,genome = BSgenome.Hsapiens.UCSC.hg38)
+
+################################################################################
+# Step 05: integrate with snRNA-seq data
+################################################################################
+
+NucSeq.rna <- readRDS("../Datos_scRNA/neurons_integrated/SFG/datos_integrados_Anotados.rds")
+NucSeq.rna$tech <- 'rna'; NucSeq.atac$tech <- 'atac';
+DefaultAssay(NucSeq.atac) <- 'RNA'
+
+
+# compute anchors between RNA and ATAC
+transfer.anchors <- FindTransferAnchors(
+  reference=NucSeq.rna,
+  query=NucSeq.atac,
+  features=VariableFeatures(NucSeq.rna),
+  reference.assay="RNA",
+  query.assay="RNA",
+  reduction="cca",
+  verbose=T,
+  dims=1:40
+)
+celltype.predictions <- TransferData(
+  anchorset=transfer.anchors,
+  refdata=NucSeq.rna$Cell.Type,
+  weight.reduction=NucSeq.atac[["lsi"]]
+)
+NucSeq.atac <- AddMetaData(NucSeq.atac, celltype.predictions)
+NucSeq.atac$predicted.id <- factor(NucSeq.atac$predicted.id, levels = levels(as.factor(NucSeq.rna$Cell.Type)))
+Idents(NucSeq.atac) <- NucSeq.atac$monocle_clusters_umap_Cell.Type
+Idents(NucSeq.rna) <- NucSeq.rna$Cell.Type
+Idents(NucSeq.atac) <- paste0(Idents(NucSeq.atac), 'atac')
+Idents(NucSeq.rna) <- paste0(Idents(NucSeq.rna), 'rna')
+genes.use <- VariableFeatures(NucSeq.rna)
+refdata <- GetAssayData(NucSeq.rna, assay = "RNA", slot = "data")[genes.use, ]
+imputation <- TransferData(anchorset = transfer.anchors, refdata = refdata, weight.reduction = NucSeq.atac[["lsi"]])
+NucSeq.atac[["RNA"]] <- imputation
+NucSeq.atac <- RenameCells(NucSeq.atac, add.cell.id='atac')
+NucSeq.rna <- RenameCells(NucSeq.rna, add.cell.id='rna')
+NucSeq.coembed <- merge(x = NucSeq.rna, y = NucSeq.atac)
+cells_to_keep <- c(colnames(NucSeq.rna), colnames(NucSeq.atac)[NucSeq.atac$prediction.score.max >= 0.5])
+NucSeq.coembed <- NucSeq.coembed[,cells_to_keep]
+NucSeq.coembed <- ScaleData(NucSeq.coembed, features = genes.use, do.scale = FALSE)
+NucSeq.coembed <- RunPCA(NucSeq.coembed, features = rownames(NucSeq.coembed), verbose = FALSE)
+NucSeq.coembed <- RunUMAP(NucSeq.coembed, dims = 1:30)
+expr_matrix <- GetAssayData(NucSeq.coembed, slot='data', assay='RNA')
+genes <- data.frame(as.character(rownames(expr_matrix)))
+rownames(genes) <- rownames(expr_matrix)
+genes <- as.data.frame(cbind(genes,genes))
+colnames(genes) <- c("GeneSymbol", "gene_short_name")
+NucSeq_cds <- new_cell_data_set(
+  expr_matrix,
+  cell_metadata=NucSeq.coembed@meta.data,
+  gene_metadata=genes
+)
+NucSeq_cds@reducedDims[['PCA']] <- NucSeq.coembed@reductions$pca@cell.embeddings
+NucSeq_cds <- align_cds(NucSeq_cds, preprocess_method='PCA', alignment_group = "Batch")
+NucSeq_cds <- reduce_dimension(NucSeq_cds, reduction_method = 'UMAP', preprocess_method = "Aligned")
+NucSeq_cds <- cluster_cells(NucSeq_cds, reduction_method='UMAP')
 
 
 
