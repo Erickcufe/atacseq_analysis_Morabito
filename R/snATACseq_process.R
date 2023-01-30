@@ -755,7 +755,8 @@ NucSeq.atac <- RunChromVAR(
   genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
 )
 
-
+saveRDS(NucSeq.atac, "mergeSamples_snATAC_TF_Activity_PartIII_Done.rds")
+DefaultAssay(NucSeq.atac) <- 'RNA'
 
 ################################################################################
 # Step 05: integrate with snRNA-seq data
@@ -765,12 +766,13 @@ NucSeq.rna <- readRDS("../Datos_scRNA/neurons_integrated/SFG/datos_integrados_An
 NucSeq.rna$tech <- 'rna'; NucSeq.atac$tech <- 'atac';
 DefaultAssay(NucSeq.atac) <- 'RNA'
 
-
+ft <- FindVariableFeatures(NucSeq.rna)
+saveRDS(NucSeq.atac, "mergeSamples_snATAC_TF_Gene_Activity_PartIII_Done.rds")
 # compute anchors between RNA and ATAC
 transfer.anchors <- FindTransferAnchors(
   reference=NucSeq.rna,
   query=NucSeq.atac,
-  features=VariableFeatures(NucSeq.rna),
+  features=VariableFeatures(ft),
   reference.assay="RNA",
   query.assay="RNA",
   reduction="cca",
