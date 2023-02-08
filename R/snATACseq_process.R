@@ -762,6 +762,8 @@ DefaultAssay(NucSeq.atac) <- 'RNA'
 # Step 05: integrate with snRNA-seq data
 ################################################################################
 
+# ESTA PARTE SE HIZO EN EL SERVIDOR
+
 NucSeq.rna <- readRDS("../Datos_scRNA/neurons_integrated/SFG/datos_integrados_Anotados.rds")
 NucSeq.rna$tech <- 'rna'; NucSeq.atac$tech <- 'atac';
 DefaultAssay(NucSeq.atac) <- 'RNA'
