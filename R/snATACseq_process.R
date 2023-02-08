@@ -704,15 +704,37 @@ CoveragePlot(
 
 saveRDS(combined, "mergeSamples_snATAC_clusterUMAP_PartII_Done.rds")
 
+combined <- readRDS("mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
+# combined <- RunUMAP(object = combined, reduction = 'lsi', dims = 2:30)
+combined <- FindNeighbors(object = combined, reduction = 'lsi', dims = 1:30)
+combined <- FindClusters(object = combined, verbose = FALSE, algorithm = 3)
+DimPlot(object = combined, reduction = "umap", label = TRUE) + NoLegend()
+saveRDS(combined, "clusters_atacseq.rds")
+# Gene activity
+
+DefaultAssay(combined) <- 'RNA'
+
+FeaturePlot(
+  object = combined,
+  features = c('VIP', 'ADAR', 'LEF1', 'NKG7', 'TREM1', 'LYZ'),
+  pt.size = 0.1,
+  max.cutoff = 'q95',
+  ncol = 3
+)
+
 ################################################################################
 # Step 04: Construct gene activity matrix
 ################################################################################
 
+combined <- readRDS("clusters_atacseq.rds")
 # extract gene annotations from EnsDb
 annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
+# annotations <- annotations[annotations$]
+anno <- GenomeInfoDb::getChromInfoFromUCSC("hg38")
 
 # change to UCSC style since the data was mapped to hg38
 seqlevelsStyle(annotations) <- 'UCSC'
+
 
 # add the gene information to the object
 Annotation(combined) <- annotations
