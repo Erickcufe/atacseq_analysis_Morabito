@@ -594,6 +594,27 @@ s82$tangle_stage <- "missing"
 s90$tangle_stage <- "Stage_1"
 s96$tangle_stage <- "Stage_0"
 
+s100$Batch <- 3
+s101$Batch <- 2
+s17$Batch <- 1
+s19$Batch <- 1
+s22$Batch <- 2
+s27$Batch <- 1
+s33$Batch <- 1
+s37$Batch <- 1
+s40$Batch <- 2
+s43$Batch <- 3
+s45$Batch <- 3
+s46$Batch <- 1
+s47$Batch <- 2
+s50$Batch <- 1
+s52$Batch <- 2
+s58$Batch <- 2
+s66$Batch <- 2
+s82$Batch <- 2
+s90$Batch <- 2
+s96$Batch <- 3
+
 s100$sex <- "M"
 s101$sex <- "F"
 s17$sex <- "F"
@@ -647,7 +668,7 @@ combined <- merge(
 )
 
 combined[["ATAC"]]
-saveRDS(combined, "mergeSamples_snATAC.rds")
+saveRDS(combined, "pipeline_snATAC.rds")
 # Binarize peaks
 combined@assays$ATAC@counts@x[combined@assays$ATAC@counts@x > 0] <- 1
 
@@ -678,201 +699,49 @@ for(i in 1:length(samples)){
 combined$pass_qc <- ifelse(combined$peak_region_fragments > 300 & combined$peak_region_fragments < 10000 & combined$pct_reads_in_peaks > 15 & combined$blacklist_ratio < 0.01 & combined$nucleosome_signal < 10, TRUE, FALSE)
 combined <- combined[,combined$pass_qc]
 
-saveRDS(combined, "mergeSamples_snATAC_QualityPartI_Done.rds")
+saveRDS(combined, "pipeline_snATAC_QualityPartI_Done.rds")
+
 ################################################################################
 # Step 03: Primary Processing
 ################################################################################
 
-# option 1: Process with Seurat / Signac (not used)
-combined <- RunTFIDF(combined)
-combined <- FindTopFeatures(combined, min.cutoff = 20)
-combined <- RunSVD(
-  object = combined,
-  assay = 'ATAC',
-  reduction.key = 'LSI_',
-  reduction.name = 'lsi'
-)
-combined <- RunUMAP(combined, reduction='lsi', dims=1:30)
-DimPlot(combined, group.by = 'sampleID', pt.size = 0.1)
-DimPlot(combined, group.by = 'disease', pt.size = 0.1)
-
-# # option 2: Process with monocle3
 library(monocle3)
-# peak_matrix <- GetAssayData(NucSeq.atac, slot='counts')
-# peaks <- data.frame(as.character(rownames(peak_matrix)))
-# rownames(peaks) <- rownames(peak_matrix)
-# peaks <- as.data.frame(cbind(peaks,peaks))
-# colnames(peaks) <- c("GeneSymbol", "gene_short_name")
-# NucSeq.atac_cds <- new_cell_data_set(
-#   peak_matrix,
-#   cell_metadata=NucSeq.atac@meta.data,
-#   gene_metadata=genes
-# )
-# NucSeq.atac_cds <- detect_genes(NucSeq.atac_cds)
-# NucSeq.atac_cds <- estimate_size_factors(NucSeq.atac_cds)
-# NucSeq.atac_cds <- preprocess_cds(NucSeq.atac_cds, method = "LSI")
-# NucSeq.atac_cds <- align_cds(NucSeq.atac_cds, preprocess_method='LSI', alignment_group = "Batch")
-# NucSeq.atac_cds <- reduce_dimension(NucSeq.atac_cds, reduction_method = 'UMAP', preprocess_method = "LSI")
-# NucSeq.atac_cds <- cluster_cells(NucSeq.atac_cds)
-# monocle_umap <- NucSeq.atac_cds@reducedDims[["UMAP"]][rownames(NucSeq.atac_cds@reducedDims[["UMAP"]]) %in% colnames(NucSeq.atac),]
-# colnames(monocle_umap) <- c('UMAP_1', 'UMAP_2')
-# all.equal(rownames(monocle_umap), colnames(NucSeq.atac))
-# NucSeq.atac@reductions$umap@cell.embeddings <- monocle_umap
-# NucSeq.atac$monocle_clusters_umap <- clusters(NucSeq.atac_cds, reduction_method='UMAP')
-# monocle_aligned <- NucSeq.atac_cds@reducedDims[["Aligned"]]
-# rownames(monocle_aligned) <- colnames(NucSeq.atac_cds)
-# colnames(monocle_aligned) <- paste0('LSI_', seq(1:ncol(monocle_aligned)))
-# all.equal(rownames(monocle_aligned), colnames(NucSeq.atac))
-# NucSeq.atac@reductions$lsi <- CreateDimReducObject(
-#   embeddings=monocle_aligned,
-#   key="LSI_",
-#   assay="peaks"
-# )
 
-CoveragePlot(
-  object = combined,
-  group.by = 'sampleID',
-  region = "chr14-99700000-99760000"
+NucSeq.atac <- combined
+# NucSeq.atac <- readRDS("mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
+peak_matrix <- GetAssayData(NucSeq.atac, slot='counts')
+peaks <- data.frame(as.character(rownames(peak_matrix)))
+rownames(peaks) <- rownames(peak_matrix)
+peaks <- as.data.frame(cbind(peaks,peaks))
+colnames(peaks) <- c("GeneSymbol", "gene_short_name")
+NucSeq.atac_cds <- new_cell_data_set(
+  peak_matrix,
+  cell_metadata=NucSeq.atac@meta.data,
+  #gene_metadata=genes
+)
+NucSeq.atac_cds <- detect_genes(NucSeq.atac_cds)
+NucSeq.atac_cds <- estimate_size_factors(NucSeq.atac_cds)
+NucSeq.atac_cds <- preprocess_cds(NucSeq.atac_cds, method = "LSI")
+NucSeq.atac_cds <- align_cds(NucSeq.atac_cds, preprocess_method='LSI', alignment_group = "sampleID")
+NucSeq.atac_cds <- reduce_dimension(NucSeq.atac_cds, reduction_method = 'UMAP', preprocess_method = "LSI")
+NucSeq.atac_cds <- cluster_cells(NucSeq.atac_cds)
+monocle_umap <- NucSeq.atac_cds@reducedDims[["UMAP"]][rownames(NucSeq.atac_cds@reducedDims[["UMAP"]]) %in% colnames(NucSeq.atac),]
+colnames(monocle_umap) <- c('UMAP_1', 'UMAP_2')
+all.equal(rownames(monocle_umap), colnames(NucSeq.atac))
+NucSeq.atac@reductions$umap@cell.embeddings <- monocle_umap
+NucSeq.atac$monocle_clusters_umap <- clusters(NucSeq.atac_cds, reduction_method='UMAP')
+monocle_aligned <- NucSeq.atac_cds@reducedDims[["Aligned"]]
+rownames(monocle_aligned) <- colnames(NucSeq.atac_cds)
+colnames(monocle_aligned) <- paste0('LSI_', seq(1:ncol(monocle_aligned)))
+all.equal(rownames(monocle_aligned), colnames(NucSeq.atac))
+NucSeq.atac@reductions$lsi <- CreateDimReducObject(
+  embeddings=monocle_aligned,
+  key="LSI_",
+  assay="peaks"
 )
 
-saveRDS(combined, "mergeSamples_snATAC_clusterUMAP_PartII_Done.rds")
+saveRDS(NucSeq.atac, "pipeline_snATAC_clusterUMAP_PartII_Done.rds")
 
-combined <- readRDS("mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
-# combined <- RunUMAP(object = combined, reduction = 'lsi', dims = 2:30)
-combined <- FindNeighbors(object = combined, reduction = 'lsi', dims = 1:30)
-combined <- FindClusters(object = combined, verbose = FALSE, algorithm = 3)
-DimPlot(object = combined, reduction = "umap", label = TRUE) + NoLegend()
-saveRDS(combined, "clusters_atacseq.rds")
-# Gene activity
-
-DefaultAssay(combined) <- 'RNA'
-
-FeaturePlot(
-  object = combined,
-  features = c('VIP', 'RORB', 'CDH9', 'SST', 'TRB1', 'SMAE3E'),
-  pt.size = 0.1,
-  max.cutoff = 'q95',
-  ncol = 3
-)
-
-################################################################################
-# Step 04: Construct gene activity matrix
-################################################################################
-
-combined <- readRDS("clusters_atacseq.rds")
-# extract gene annotations from EnsDb
-annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
-# annotations <- annotations[annotations$]
-anno <- GenomeInfoDb::getChromInfoFromUCSC("hg38")
-
-# change to UCSC style since the data was mapped to hg38
-seqlevelsStyle(annotations) <- 'UCSC'
-
-
-# add the gene information to the object
-Annotation(combined) <- annotations
-
-gene.activities <- GeneActivity(combined)
-
-# add the gene activity matrix to the Seurat object as a new assay and normalize it
-combined[['RNA']] <- CreateAssayObject(counts = gene.activities)
-combined <- Seurat::NormalizeData(
-  object = combined,
-  assay = 'RNA',
-  normalization.method = 'LogNormalize',
-  scale.factor = median(combined$nCount_RNA)
-)
-
-saveRDS(combined, "mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
-
-################################################################################
-# Step 04: Construct TF activity matrix (warning: takes a lot of time/memory!!!)
-################################################################################
-library(TFBSTools)
-library(Signac)
-
-NucSeq.atac <- readRDS("mergeSamples_snATAC_geneActivity_PartIII_Done.rds")
-pfm <- getMatrixSet(x = JASPAR2022::JASPAR2022, opts = list(species = 9606, all_versions = FALSE))
-
-
-# this step if for delete seqlevels that don't know BSgenome.Hsapiens.UCSC.hg38
-NucSeq.atac <- NucSeq.atac[stringr::str_starts(rownames(NucSeq.atac), "c"),]
-
-# add motif information
-NucSeq.atac <- AddMotifs(
-  object = NucSeq.atac,
-  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38,
-  pfm = pfm
-)
-
-NucSeq.atac <- RunChromVAR(
-  object = NucSeq.atac,
-  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
-)
-
-saveRDS(NucSeq.atac, "mergeSamples_snATAC_TF_Activity_PartIII_Done.rds")
-DefaultAssay(NucSeq.atac) <- 'RNA'
-
-################################################################################
-# Step 05: integrate with snRNA-seq data
-################################################################################
-
-# ESTA PARTE SE HIZO EN EL SERVIDOR
-
-NucSeq.rna <- readRDS("../Datos_scRNA/neurons_integrated/SFG/datos_integrados_Anotados.rds")
-NucSeq.rna$tech <- 'rna'; NucSeq.atac$tech <- 'atac';
-DefaultAssay(NucSeq.atac) <- 'RNA'
-
-ft <- FindVariableFeatures(NucSeq.rna)
-saveRDS(NucSeq.atac, "mergeSamples_snATAC_TF_Gene_Activity_PartIII_Done.rds")
-# compute anchors between RNA and ATAC
-transfer.anchors <- FindTransferAnchors(
-  reference=NucSeq.rna,
-  query=NucSeq.atac,
-  features=VariableFeatures(ft),
-  reference.assay="RNA",
-  query.assay="RNA",
-  reduction="cca",
-  verbose=T,
-  dims=1:40
-)
-celltype.predictions <- TransferData(
-  anchorset=transfer.anchors,
-  refdata=NucSeq.rna$Cell.Type,
-  weight.reduction=NucSeq.atac[["lsi"]]
-)
-NucSeq.atac <- AddMetaData(NucSeq.atac, celltype.predictions)
-NucSeq.atac$predicted.id <- factor(NucSeq.atac$predicted.id, levels = levels(as.factor(NucSeq.rna$Cell.Type)))
-Idents(NucSeq.atac) <- NucSeq.atac$monocle_clusters_umap_Cell.Type
-Idents(NucSeq.rna) <- NucSeq.rna$Cell.Type
-Idents(NucSeq.atac) <- paste0(Idents(NucSeq.atac), 'atac')
-Idents(NucSeq.rna) <- paste0(Idents(NucSeq.rna), 'rna')
-genes.use <- VariableFeatures(NucSeq.rna)
-refdata <- GetAssayData(NucSeq.rna, assay = "RNA", slot = "data")[genes.use, ]
-imputation <- TransferData(anchorset = transfer.anchors, refdata = refdata, weight.reduction = NucSeq.atac[["lsi"]])
-NucSeq.atac[["RNA"]] <- imputation
-NucSeq.atac <- RenameCells(NucSeq.atac, add.cell.id='atac')
-NucSeq.rna <- RenameCells(NucSeq.rna, add.cell.id='rna')
-NucSeq.coembed <- merge(x = NucSeq.rna, y = NucSeq.atac)
-cells_to_keep <- c(colnames(NucSeq.rna), colnames(NucSeq.atac)[NucSeq.atac$prediction.score.max >= 0.5])
-NucSeq.coembed <- NucSeq.coembed[,cells_to_keep]
-NucSeq.coembed <- ScaleData(NucSeq.coembed, features = genes.use, do.scale = FALSE)
-NucSeq.coembed <- RunPCA(NucSeq.coembed, features = rownames(NucSeq.coembed), verbose = FALSE)
-NucSeq.coembed <- RunUMAP(NucSeq.coembed, dims = 1:30)
-expr_matrix <- GetAssayData(NucSeq.coembed, slot='data', assay='RNA')
-genes <- data.frame(as.character(rownames(expr_matrix)))
-rownames(genes) <- rownames(expr_matrix)
-genes <- as.data.frame(cbind(genes,genes))
-colnames(genes) <- c("GeneSymbol", "gene_short_name")
-NucSeq_cds <- new_cell_data_set(
-  expr_matrix,
-  cell_metadata=NucSeq.coembed@meta.data,
-  gene_metadata=genes
-)
-NucSeq_cds@reducedDims[['PCA']] <- NucSeq.coembed@reductions$pca@cell.embeddings
-NucSeq_cds <- align_cds(NucSeq_cds, preprocess_method='PCA', alignment_group = "Batch")
-NucSeq_cds <- reduce_dimension(NucSeq_cds, reduction_method = 'UMAP', preprocess_method = "Aligned")
-NucSeq_cds <- cluster_cells(NucSeq_cds, reduction_method='UMAP')
 
 
 
