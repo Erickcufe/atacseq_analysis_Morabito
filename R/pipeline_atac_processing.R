@@ -743,5 +743,33 @@ NucSeq.atac@reductions$lsi <- CreateDimReducObject(
 saveRDS(NucSeq.atac, "pipeline_snATAC_clusterUMAP_PartII_Done.rds")
 
 
+################################################################################
+# Step 04: Construct gene activity matrix
+################################################################################
 
+combined <- NucSeq.atac
+# extract gene annotations from EnsDb
+annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
+# annotations <- annotations[annotations$]
+anno <- GenomeInfoDb::getChromInfoFromUCSC("hg38")
+
+# change to UCSC style since the data was mapped to hg38
+seqlevelsStyle(annotations) <- 'UCSC'
+
+
+# add the gene information to the object
+Annotation(combined) <- annotations
+
+gene.activities <- GeneActivity(combined)
+
+# add the gene activity matrix to the Seurat object as a new assay and normalize it
+combined[['RNA']] <- CreateAssayObject(counts = gene.activities)
+combined <- Seurat::NormalizeData(
+  object = combined,
+  assay = 'RNA',
+  normalization.method = 'LogNormalize',
+  scale.factor = median(combined$nCount_RNA)
+)
+
+saveRDS(combined, "pipeline_snATAC_geneActivity_PartIII_Done.rds")
 
