@@ -722,15 +722,28 @@ NucSeq.atac_cds <- new_cell_data_set(
 NucSeq.atac_cds <- detect_genes(NucSeq.atac_cds)
 NucSeq.atac_cds <- estimate_size_factors(NucSeq.atac_cds)
 NucSeq.atac_cds <- preprocess_cds(NucSeq.atac_cds, method = "LSI")
-NucSeq.atac_cds <- align_cds(NucSeq.atac_cds, preprocess_method='LSI', alignment_group = "sampleID")
+NucSeq.atac_cds <- align_cds(NucSeq.atac_cds, preprocess_method='LSI', alignment_group = "Batch")
 NucSeq.atac_cds <- reduce_dimension(NucSeq.atac_cds, reduction_method = 'UMAP', preprocess_method = "LSI")
 NucSeq.atac_cds <- cluster_cells(NucSeq.atac_cds)
-monocle_umap <- NucSeq.atac_cds@reducedDims[["UMAP"]][rownames(NucSeq.atac_cds@reducedDims[["UMAP"]]) %in% colnames(NucSeq.atac),]
-colnames(monocle_umap) <- c('UMAP_1', 'UMAP_2')
-all.equal(rownames(monocle_umap), colnames(NucSeq.atac))
-NucSeq.atac@reductions$umap@cell.embeddings <- monocle_umap
+umap_coords <- reducedDims(NucSeq.atac_cds)$UMAP
+
+# alternativa
+NucSeq.atac <- RunTFIDF(NucSeq.atac)
+NucSeq.atac <- FindTopFeatures(NucSeq.atac, min.cutoff = 20)
+NucSeq.atac <- RunSVD(
+  object = NucSeq.atac,
+  assay = 'ATAC',
+  reduction.key = 'LSI_',
+  reduction.name = 'lsi'
+)
+NucSeq.atac <- RunUMAP(NucSeq.atac, reduction='lsi', dims=1:30)
+
+# monocle_umap <- NucSeq.atac_cds@reduce_dim_aux[["UMAP"]][rownames(NucSeq.atac_cds@reduce_dim_aux[["UMAP"]]) %in% colnames(NucSeq.atac),]
+# colnames(monocle_umap) <- c('UMAP_1', 'UMAP_2')
+# all.equal(rownames(monocle_umap), colnames(NucSeq.atac))
+NucSeq.atac@reductions$umap@cell.embeddings <- umap_coords
 NucSeq.atac$monocle_clusters_umap <- clusters(NucSeq.atac_cds, reduction_method='UMAP')
-monocle_aligned <- NucSeq.atac_cds@reducedDims[["Aligned"]]
+monocle_aligned <- reducedDims(NucSeq.atac_cds)$Aligned
 rownames(monocle_aligned) <- colnames(NucSeq.atac_cds)
 colnames(monocle_aligned) <- paste0('LSI_', seq(1:ncol(monocle_aligned)))
 all.equal(rownames(monocle_aligned), colnames(NucSeq.atac))
