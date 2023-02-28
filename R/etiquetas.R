@@ -1,7 +1,7 @@
 library(Seurat)
 
 so <- readRDS("SingleR_anotated_ATAC.rds")
-Idents(so) <- so$Proplabels
+Idents(so) <- so$tags
 DefaultAssay(so) <- 'ATAC'
 DimPlot(so)
 

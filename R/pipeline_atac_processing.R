@@ -759,8 +759,8 @@ saveRDS(NucSeq.atac, "pipeline_snATAC_clusterUMAP_PartII_Done.rds")
 ################################################################################
 # Step 04: Construct gene activity matrix
 ################################################################################
-
-combined <- NucSeq.atac
+library(Signac)
+combined <- readRDS("pipeline_snATAC_clusterUMAP_PartII_Done.rds")
 # extract gene annotations from EnsDb
 annotations <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86::EnsDb.Hsapiens.v86)
 # annotations <- annotations[annotations$]
@@ -768,7 +768,6 @@ anno <- GenomeInfoDb::getChromInfoFromUCSC("hg38")
 
 # change to UCSC style since the data was mapped to hg38
 seqlevelsStyle(annotations) <- 'UCSC'
-
 
 # add the gene information to the object
 Annotation(combined) <- annotations
@@ -785,4 +784,29 @@ combined <- Seurat::NormalizeData(
 )
 
 saveRDS(combined, "pipeline_snATAC_geneActivity_PartIII_Done.rds")
+
+
+
+library(EnsDb.Hsapiens.v86)
+gene.coords <- genes(EnsDb.Hsapiens.v86, filter = ~ gene_biotype == "protein_coding")
+seqlevelsStyle(gene.coords) <- 'UCSC'
+genebody.coords <- keepStandardChromosomes(gene.coords, pruning.mode = 'coarse')
+genebodyandpromoter.coords <- Extend(x = gene.coords, upstream = 2000, downstream = 0)
+gene.activities <- FeatureMatrix(
+  fragments = fragment.path,
+  features = genebodyandpromoter.coords,
+  cells = colnames(NucSeq.atac),
+  chunk = 10
+)
+gene.key <- genebodyandpromoter.coords$gene_name
+names(gene.key) <- GRangesToString(grange = genebodyandpromoter.coords)
+rownames(gene.activities) <- gene.key[rownames(gene.activities)]
+NucSeq.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
+NucSeq.atac <- NormalizeData(
+  object = NucSeq.atac,
+  assay = 'RNA',
+  normalization.method = 'LogNormalize',
+  scale.factor = median(NucSeq.atac$nCount_RNA)
+)
+DefaultAssay(NucSeq.atac) <- 'RNA'
 
