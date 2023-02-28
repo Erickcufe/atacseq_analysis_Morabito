@@ -783,30 +783,58 @@ combined <- Seurat::NormalizeData(
   scale.factor = median(combined$nCount_RNA)
 )
 
+DefaultAssay(combined) <- 'RNA'
+
 saveRDS(combined, "pipeline_snATAC_geneActivity_PartIII_Done.rds")
 
 
+################################################################################
+# Step 04: Construct TF activity matrix (warning: takes a lot of time/memory!!!)
+################################################################################
+library(TFBSTools)
+library(Signac)
+library(Seurat)
 
-library(EnsDb.Hsapiens.v86)
-gene.coords <- genes(EnsDb.Hsapiens.v86, filter = ~ gene_biotype == "protein_coding")
-seqlevelsStyle(gene.coords) <- 'UCSC'
-genebody.coords <- keepStandardChromosomes(gene.coords, pruning.mode = 'coarse')
-genebodyandpromoter.coords <- Extend(x = gene.coords, upstream = 2000, downstream = 0)
-gene.activities <- FeatureMatrix(
-  fragments = fragment.path,
-  features = genebodyandpromoter.coords,
-  cells = colnames(NucSeq.atac),
-  chunk = 10
-)
-gene.key <- genebodyandpromoter.coords$gene_name
-names(gene.key) <- GRangesToString(grange = genebodyandpromoter.coords)
-rownames(gene.activities) <- gene.key[rownames(gene.activities)]
-NucSeq.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
-NucSeq.atac <- NormalizeData(
+NucSeq.atac <- readRDS("pipeline_snATAC_geneActivity_PartIII_Done.rds")
+
+DefaultAssay(NucSeq.atac) <- 'ATAC'
+NucSeq.atac <- RenameAssays(NucSeq.atac, ATAC = "peaks")
+main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+keep.peaks <- as.logical(seqnames(granges(NucSeq.atac)) %in% main.chroms)
+NucSeq.atac <- NucSeq.atac[keep.peaks, ]
+# pfm <- getMatrixSet(x = JASPAR2018,opts = list(species = 9606, all_versions = FALSE))
+motif.matrix <- CreateMotifMatrix(features = StringToGRanges(rownames(NucSeq.atac), sep = c(":", "-")),
+                                  pwm = pfm,genome = 'hg38',sep = c(":", "-"))
+motif <- CreateMotifObject(data = motif.matrix,pwm = pfm)
+NucSeq.atac[['peaks']] <- AddMotifObject(object = NucSeq.atac[['peaks']], motif.object = motif)
+NucSeq.atac <- RunChromVAR(object = NucSeq.atac,genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38)
+
+NucSeq.atac[stringr::str_starts(seqnames(features), "c"),]
+
+
+pfm <- getMatrixSet(x = JASPAR2022::JASPAR2022, opts = list(species = 9606, all_versions = FALSE))
+
+DefaultAssay(NucSeq.atac) <- 'ATAC'
+
+
+
+# this step if for delete seqlevels that don't know BSgenome.Hsapiens.UCSC.hg38
+NucSeq.atac <- NucSeq.atac[stringr::str_starts(rownames(NucSeq.atac), "c"),]
+
+
+
+# add motif information
+NucSeq.atac <- AddMotifs(
   object = NucSeq.atac,
-  assay = 'RNA',
-  normalization.method = 'LogNormalize',
-  scale.factor = median(NucSeq.atac$nCount_RNA)
+  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38,
+  pfm = pfm
 )
+
+NucSeq.atac <- RunChromVAR(
+  object = combined,
+  genome = BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
+)
+
+saveRDS(NucSeq.atac, "pipeline_snATAC_TF_Activity_PartIII_Done.rds")
 DefaultAssay(NucSeq.atac) <- 'RNA'
 
